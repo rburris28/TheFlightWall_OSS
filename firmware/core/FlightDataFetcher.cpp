@@ -4,7 +4,7 @@ Flow:
 1) Use BaseStateVectorFetcher to fetch nearby state vectors by geo filter.
 2) For each callsign, use BaseFlightFetcher (e.g., AeroAPI) to retrieve FlightInfo.
 3) Enrich names via FlightWallFetcher (airline/aircraft display names).
-Output: Returns count of enriched flights and fills outStates/outFlights.
+Output: Returns fetch success, enriched flight count, and fills outStates/outFlights.
 */
 #include "core/FlightDataFetcher.h"
 
@@ -17,11 +17,13 @@ FlightDataFetcher::FlightDataFetcher(BaseStateVectorFetcher *stateFetcher,
                                      BaseFlightFetcher *flightFetcher)
     : _stateFetcher(stateFetcher), _flightFetcher(flightFetcher) {}
 
-size_t FlightDataFetcher::fetchFlights(std::vector<StateVector> &outStates,
-                                       std::vector<FlightInfo> &outFlights)
+bool FlightDataFetcher::fetchFlights(std::vector<StateVector> &outStates,
+                                     std::vector<FlightInfo> &outFlights,
+                                     size_t &outEnrichedCount)
 {
     outStates.clear();
     outFlights.clear();
+    outEnrichedCount = 0;
 
     bool ok = _stateFetcher->fetchStateVectors(
         UserConfiguration::CENTER_LAT,
@@ -29,8 +31,9 @@ size_t FlightDataFetcher::fetchFlights(std::vector<StateVector> &outStates,
         UserConfiguration::RADIUS_KM,
         outStates);
     if (!ok)
-        return 0;
+        return false;
 
+    size_t candidatesWithCallsign = 0;
     size_t enriched = 0;
     for (const StateVector &s : outStates)
     {
@@ -38,6 +41,8 @@ size_t FlightDataFetcher::fetchFlights(std::vector<StateVector> &outStates,
         {
             continue;
         }
+        candidatesWithCallsign++;
+
         FlightInfo info;
         if (_flightFetcher->fetchFlightInfo(s.callsign, info))
         {
@@ -73,5 +78,10 @@ size_t FlightDataFetcher::fetchFlights(std::vector<StateVector> &outStates,
             enriched++;
         }
     }
-    return enriched;
+    outEnrichedCount = enriched;
+    if (candidatesWithCallsign > 0 && enriched == 0)
+    {
+        return false;
+    }
+    return true;
 }

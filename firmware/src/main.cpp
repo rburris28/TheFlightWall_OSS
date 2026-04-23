@@ -26,7 +26,9 @@ static NeoMatrixDisplay g_display;
 static std::vector<FlightInfo> g_currentFlights;
 static unsigned long g_lastFetchMs = 0;
 static unsigned long g_lastDisplayMs = 0;
-static const unsigned long kDisplayRefreshMs = 100;
+static const unsigned long kDisplayRefreshMs = TimingConfiguration::DISPLAY_CYCLE_SECONDS > 0
+                                                   ? TimingConfiguration::DISPLAY_CYCLE_SECONDS * 1000UL
+                                                   : 1000UL;
 
 void setup()
 {
@@ -77,62 +79,75 @@ void loop()
         g_lastFetchMs = now;
 
         std::vector<StateVector> states;
-        size_t enriched = g_fetcher->fetchFlights(states, g_currentFlights);
+        std::vector<FlightInfo> nextFlights;
+        size_t enriched = 0;
+        const bool fetchOk = g_fetcher->fetchFlights(states, nextFlights, enriched);
 
-        Serial.print("OpenSky state vectors: ");
-        Serial.println((int)states.size());
-        Serial.print("AeroAPI enriched flights: ");
-        Serial.println((int)enriched);
-
-        for (const auto &s : states)
+        if (!fetchOk)
         {
-            Serial.print(" ");
-            Serial.print(s.callsign);
-            Serial.print(" @ ");
-            Serial.print(s.distance_km, 1);
-            Serial.print("km bearing ");
-            Serial.println(s.bearing_deg, 1);
+            Serial.print("Flight fetch failed; keeping cached flights: ");
+            Serial.println((int)g_currentFlights.size());
         }
-
-        for (const auto &f : g_currentFlights)
+        else
         {
-            Serial.println("=== FLIGHT INFO ===");
-            Serial.print("Ident: ");
-            Serial.println(f.ident);
-            Serial.print("Ident ICAO: ");
-            Serial.println(f.ident_icao);
-            Serial.print("Ident IATA: ");
-            Serial.println(f.ident_iata);
-            Serial.print("Airline: ");
-            Serial.println(f.airline_display_name_full);
-            Serial.print("Aircraft: ");
-            Serial.println(f.aircraft_display_name_short.length() ? f.aircraft_display_name_short : f.aircraft_code);
-            Serial.print("Operator Code: ");
-            Serial.println(f.operator_code);
-            Serial.print("Operator ICAO: ");
-            Serial.println(f.operator_icao);
-            Serial.print("Operator IATA: ");
-            Serial.println(f.operator_iata);
-            if (f.has_live_position)
+            g_currentFlights = nextFlights;
+            g_lastDisplayMs = 0;
+
+            Serial.print("OpenSky state vectors: ");
+            Serial.println((int)states.size());
+            Serial.print("AeroAPI enriched flights: ");
+            Serial.println((int)enriched);
+
+            for (const auto &s : states)
             {
-                Serial.print("Position: ");
-                Serial.print(f.latitude, 5);
-                Serial.print(", ");
-                Serial.print(f.longitude, 5);
-                Serial.print(" distance ");
-                Serial.print(f.distance_km, 1);
+                Serial.print(" ");
+                Serial.print(s.callsign);
+                Serial.print(" @ ");
+                Serial.print(s.distance_km, 1);
                 Serial.print("km bearing ");
-                Serial.println(f.bearing_deg, 1);
+                Serial.println(s.bearing_deg, 1);
             }
 
-            Serial.println("--- Origin ---");
-            Serial.print("Code ICAO: ");
-            Serial.println(f.origin.code_icao);
+            for (const auto &f : g_currentFlights)
+            {
+                Serial.println("=== FLIGHT INFO ===");
+                Serial.print("Ident: ");
+                Serial.println(f.ident);
+                Serial.print("Ident ICAO: ");
+                Serial.println(f.ident_icao);
+                Serial.print("Ident IATA: ");
+                Serial.println(f.ident_iata);
+                Serial.print("Airline: ");
+                Serial.println(f.airline_display_name_full);
+                Serial.print("Aircraft: ");
+                Serial.println(f.aircraft_display_name_short.length() ? f.aircraft_display_name_short : f.aircraft_code);
+                Serial.print("Operator Code: ");
+                Serial.println(f.operator_code);
+                Serial.print("Operator ICAO: ");
+                Serial.println(f.operator_icao);
+                Serial.print("Operator IATA: ");
+                Serial.println(f.operator_iata);
+                if (f.has_live_position)
+                {
+                    Serial.print("Position: ");
+                    Serial.print(f.latitude, 5);
+                    Serial.print(", ");
+                    Serial.print(f.longitude, 5);
+                    Serial.print(" distance ");
+                    Serial.print(f.distance_km, 1);
+                    Serial.print("km bearing ");
+                    Serial.println(f.bearing_deg, 1);
+                }
 
-            Serial.println("--- Destination ---");
-            Serial.print("Code ICAO: ");
-            Serial.println(f.destination.code_icao);
-            Serial.println("===================");
+                Serial.println("--- Origin ---");
+                Serial.print("Code ICAO: ");
+                Serial.println(f.origin.code_icao);
+
+                Serial.println("--- Destination ---");
+                Serial.print("Code ICAO: ");
+                Serial.println(f.destination.code_icao);
+                Serial.println("===================");
+            }
         }
     }
     const unsigned long displayNow = millis();

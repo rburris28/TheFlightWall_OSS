@@ -13,8 +13,9 @@ public:
     FlightDataFetcher(BaseStateVectorFetcher *stateFetcher,
                       BaseFlightFetcher *flightFetcher);
 
-    size_t fetchFlights(std::vector<StateVector> &outStates,
-                        std::vector<FlightInfo> &outFlights);
+    bool fetchFlights(std::vector<StateVector> &outStates,
+                      std::vector<FlightInfo> &outFlights,
+                      size_t &outEnrichedCount);
 
 private:
     BaseStateVectorFetcher *_stateFetcher;
