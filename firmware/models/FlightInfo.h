@@ -23,6 +23,14 @@ struct FlightInfo
     // Aircraft
     String aircraft_code;
 
+    // Live position from the state vector used to enrich this flight
+    bool has_live_position = false;
+    double latitude = NAN;
+    double longitude = NAN;
+    double distance_km = NAN;
+    double bearing_deg = NAN;
+    double heading_deg = NAN;
+
     // Human-friendly display strings
     String airline_display_name_full;
     String aircraft_display_name_short;

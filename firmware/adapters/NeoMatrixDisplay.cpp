@@ -2,7 +2,7 @@
 Purpose: Render flight info on a WS2812B NeoPixel matrix via FastLED_NeoMatrix.
 Responsibilities:
 - Initialize LED matrix based on HardwareConfiguration and user display settings.
-- Render a bordered, three-line flight “card” and a minimal loading screen.
+- Render a bordered flight card with optional local map inset and a minimal loading screen.
 - Cycle through multiple flights at a configurable interval.
 Inputs: FlightInfo list; UserConfiguration (colors/brightness), TimingConfiguration (cycle),
         HardwareConfiguration (dimensions/pin/tiling).
@@ -13,6 +13,7 @@ Outputs: Visual output to LED matrix using FastLED.
 #include <Adafruit_GFX.h>
 #include <FastLED_NeoMatrix.h>
 #include <FastLED.h>
+#include <math.h>
 #include "config/UserConfiguration.h"
 #include "config/HardwareConfiguration.h"
 #include "config/TimingConfiguration.h"
@@ -121,6 +122,81 @@ String NeoMatrixDisplay::truncateToColumns(const String &text, int maxColumns)
     return text.substring(0, maxColumns - 3) + String("...");
 }
 
+bool NeoMatrixDisplay::shouldShowMapInset(const FlightInfo &f) const
+{
+    return UserConfiguration::DISPLAY_MAP_ENABLED &&
+           f.has_live_position &&
+           !isnan(f.distance_km) &&
+           !isnan(f.bearing_deg) &&
+           UserConfiguration::RADIUS_KM > 0.0 &&
+           _matrixWidth >= 96 &&
+           _matrixHeight >= 24;
+}
+
+void NeoMatrixDisplay::drawFlightMapInset(const FlightInfo &f, int16_t x, int16_t y, int16_t size, uint16_t mapColor)
+{
+    if (_matrix == nullptr || size < 12)
+        return;
+
+    const int16_t centerX = x + size / 2;
+    const int16_t centerY = y + size / 2;
+    const int16_t radius = (size / 2) - 3;
+    if (radius <= 2)
+        return;
+
+    _matrix->drawRect(x, y, size, size, mapColor);
+    _matrix->drawCircle(centerX, centerY, radius, mapColor);
+
+    // Center point is the configured home/location; the dot is the selected flight.
+    _matrix->drawLine(centerX - 1, centerY, centerX + 1, centerY, mapColor);
+    _matrix->drawLine(centerX, centerY - 1, centerX, centerY + 1, mapColor);
+    _matrix->drawPixel(centerX, y + 1, mapColor);
+
+    double distanceRatio = f.distance_km / UserConfiguration::RADIUS_KM;
+    if (distanceRatio < 0.0)
+    {
+        distanceRatio = 0.0;
+    }
+    if (distanceRatio > 1.0)
+    {
+        distanceRatio = 1.0;
+    }
+
+    const double bearingRad = f.bearing_deg * 3.14159265358979323846 / 180.0;
+    int16_t markerX = centerX + (int16_t)round(sin(bearingRad) * radius * distanceRatio);
+    int16_t markerY = centerY - (int16_t)round(cos(bearingRad) * radius * distanceRatio);
+    if (markerX < x + 2)
+        markerX = x + 2;
+    if (markerX > x + size - 3)
+        markerX = x + size - 3;
+    if (markerY < y + 2)
+        markerY = y + 2;
+    if (markerY > y + size - 3)
+        markerY = y + size - 3;
+
+    const uint16_t markerColor = _matrix->Color(UserConfiguration::MAP_MARKER_COLOR_R,
+                                                UserConfiguration::MAP_MARKER_COLOR_G,
+                                                UserConfiguration::MAP_MARKER_COLOR_B);
+
+    if (!isnan(f.heading_deg))
+    {
+        const double headingRad = f.heading_deg * 3.14159265358979323846 / 180.0;
+        int16_t headingX = markerX + (int16_t)round(sin(headingRad) * 4.0);
+        int16_t headingY = markerY - (int16_t)round(cos(headingRad) * 4.0);
+        if (headingX < x + 1)
+            headingX = x + 1;
+        if (headingX > x + size - 2)
+            headingX = x + size - 2;
+        if (headingY < y + 1)
+            headingY = y + 1;
+        if (headingY > y + size - 2)
+            headingY = y + size - 2;
+        _matrix->drawLine(markerX, markerY, headingX, headingY, markerColor);
+    }
+
+    _matrix->fillCircle(markerX, markerY, 2, markerColor);
+}
+
 void NeoMatrixDisplay::displaySingleFlightCard(const FlightInfo &f)
 {
     // Border
@@ -135,7 +211,12 @@ void NeoMatrixDisplay::displaySingleFlightCard(const FlightInfo &f)
     const int padding = 2;                                   // Small padding from border
     const int innerWidth = _matrixWidth - 2 - (2 * padding); // Account for border and padding
     const int innerHeight = _matrixHeight - 2 - (2 * padding);
-    const int maxCols = innerWidth / charWidth;
+    const bool showMap = shouldShowMapInset(f);
+    const int mapSize = showMap ? (innerHeight < 30 ? innerHeight : 30) : 0;
+    const int16_t mapX = _matrixWidth - 1 - padding - mapSize;
+    const int16_t mapY = 1 + padding + (innerHeight - mapSize) / 2;
+    const int textWidth = showMap ? (mapX - (1 + padding) - padding) : innerWidth;
+    const int maxCols = textWidth / charWidth;
 
     // Lines per display:
     // 1: airline
@@ -158,6 +239,11 @@ void NeoMatrixDisplay::displaySingleFlightCard(const FlightInfo &f)
     const uint16_t textColor = _matrix->Color(UserConfiguration::TEXT_COLOR_R,
                                               UserConfiguration::TEXT_COLOR_G,
                                               UserConfiguration::TEXT_COLOR_B);
+    if (showMap)
+    {
+        drawFlightMapInset(f, mapX, mapY, mapSize, textColor);
+    }
+
     const int lineCount = 3;
     const int lineSpacing = 1; // 1px spacing between lines
     const int totalTextHeight = lineCount * charHeight + (lineCount - 1) * lineSpacing;

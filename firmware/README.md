@@ -5,7 +5,7 @@ This is a high-level overview of the firmware that powers TheFlightWall on ESP32
 ### What it does
 - **Fetch nearby aircraft** from OpenSky Network using OAuth (states/all) filtered by location, radius, and bearing.
 - **Enrich flights** with readable airline/aircraft info from AeroAPI and TheFlightWall CDN.
-- **Render** a clean, minimal three-line flight card on a WS2812B LED matrix.
+- **Render** a clean, minimal flight card with a local map inset on a WS2812B LED matrix.
 
 ### Key components
 - **src/main.cpp**: Entry point. Initializes serial, Wi‑Fi, fetchers, and display. Periodically fetches/enriches and renders.
@@ -13,7 +13,7 @@ This is a high-level overview of the firmware that powers TheFlightWall on ESP32
 - **adapters/OpenSkyFetcher**: Queries OpenSky states/all with OAuth; parses and filters by geo.
 - **adapters/AeroAPIFetcher**: Retrieves flight details by ident via AeroAPI.
 - **adapters/FlightWallFetcher**: Looks up human‑friendly airline/aircraft names from CDN.
-- **adapters/NeoMatrixDisplay**: Draws bordered, centered three‑line flight card; cycles flights; shows loading.
+- **adapters/NeoMatrixDisplay**: Draws bordered, centered flight card with live map inset; cycles flights; shows loading.
 - **config/**: User/API/timing/hardware/Wi‑Fi settings.
 - **models/**: Lightweight structs for `StateVector`, `FlightInfo`, `AirportInfo`.
 - **utils/GeoUtils.h**: Haversine distance and bounding boxes.

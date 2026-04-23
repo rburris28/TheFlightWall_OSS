@@ -7,6 +7,9 @@ Flow:
 Output: Returns count of enriched flights and fills outStates/outFlights.
 */
 #include "core/FlightDataFetcher.h"
+
+#include <math.h>
+
 #include "config/UserConfiguration.h"
 #include "adapters/FlightWallFetcher.h"
 
@@ -38,6 +41,14 @@ size_t FlightDataFetcher::fetchFlights(std::vector<StateVector> &outStates,
         FlightInfo info;
         if (_flightFetcher->fetchFlightInfo(s.callsign, info))
         {
+            info.has_live_position = !isnan(s.lat) && !isnan(s.lon) &&
+                                     !isnan(s.distance_km) && !isnan(s.bearing_deg);
+            info.latitude = s.lat;
+            info.longitude = s.lon;
+            info.distance_km = s.distance_km;
+            info.bearing_deg = s.bearing_deg;
+            info.heading_deg = s.heading;
+
             FlightWallFetcher fw;
             if (info.operator_icao.length())
             {

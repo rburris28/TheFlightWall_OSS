@@ -33,6 +33,8 @@ private:
     void drawTextLine(int16_t x, int16_t y, const String &text, uint16_t color);
     String makeFlightLine(const FlightInfo &f);
     String truncateToColumns(const String &text, int maxColumns);
+    bool shouldShowMapInset(const FlightInfo &f) const;
+    void drawFlightMapInset(const FlightInfo &f, int16_t x, int16_t y, int16_t size, uint16_t mapColor);
     void displaySingleFlightCard(const FlightInfo &f);
     void displayLoadingScreen();
 };

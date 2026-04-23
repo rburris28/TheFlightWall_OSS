@@ -106,6 +106,8 @@ The firmware can be built and uploaded to the ESP32 using [PlatformIO](https://p
   - Edit `DISPLAY_BRIGHTNESS` in [UserConfiguration.h](firmware/config/UserConfiguration.h)
 - **Text color**: RGB values used for all text/borders
   - Edit `TEXT_COLOR_R`, `TEXT_COLOR_G`, `TEXT_COLOR_B` in [UserConfiguration.h](firmware/config/UserConfiguration.h)
+- **Map inset**: Shows the selected flight's live OpenSky position relative to your configured location and search radius
+  - Toggle `DISPLAY_MAP_ENABLED` and edit `MAP_MARKER_COLOR_R`, `MAP_MARKER_COLOR_G`, `MAP_MARKER_COLOR_B` in [UserConfiguration.h](firmware/config/UserConfiguration.h)
 
 We may add more customization options in the future, but of course this being open source the whole thing is customizable to your liking.
 

@@ -23,7 +23,10 @@ static AeroAPIFetcher g_aeroApi;
 static FlightDataFetcher *g_fetcher = nullptr;
 static NeoMatrixDisplay g_display;
 
+static std::vector<FlightInfo> g_currentFlights;
 static unsigned long g_lastFetchMs = 0;
+static unsigned long g_lastDisplayMs = 0;
+static const unsigned long kDisplayRefreshMs = 100;
 
 void setup()
 {
@@ -74,8 +77,7 @@ void loop()
         g_lastFetchMs = now;
 
         std::vector<StateVector> states;
-        std::vector<FlightInfo> flights;
-        size_t enriched = g_fetcher->fetchFlights(states, flights);
+        size_t enriched = g_fetcher->fetchFlights(states, g_currentFlights);
 
         Serial.print("OpenSky state vectors: ");
         Serial.println((int)states.size());
@@ -92,7 +94,7 @@ void loop()
             Serial.println(s.bearing_deg, 1);
         }
 
-        for (const auto &f : flights)
+        for (const auto &f : g_currentFlights)
         {
             Serial.println("=== FLIGHT INFO ===");
             Serial.print("Ident: ");
@@ -111,6 +113,17 @@ void loop()
             Serial.println(f.operator_icao);
             Serial.print("Operator IATA: ");
             Serial.println(f.operator_iata);
+            if (f.has_live_position)
+            {
+                Serial.print("Position: ");
+                Serial.print(f.latitude, 5);
+                Serial.print(", ");
+                Serial.print(f.longitude, 5);
+                Serial.print(" distance ");
+                Serial.print(f.distance_km, 1);
+                Serial.print("km bearing ");
+                Serial.println(f.bearing_deg, 1);
+            }
 
             Serial.println("--- Origin ---");
             Serial.print("Code ICAO: ");
@@ -121,8 +134,12 @@ void loop()
             Serial.println(f.destination.code_icao);
             Serial.println("===================");
         }
-
-        g_display.displayFlights(flights);
+    }
+    const unsigned long displayNow = millis();
+    if (displayNow - g_lastDisplayMs >= kDisplayRefreshMs)
+    {
+        g_lastDisplayMs = displayNow;
+        g_display.displayFlights(g_currentFlights);
     }
     delay(10);
 }
