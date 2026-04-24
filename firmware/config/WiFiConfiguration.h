@@ -4,6 +4,6 @@
 
 namespace WiFiConfiguration
 {
-    static const char *WIFI_SSID = "";
-    static const char *WIFI_PASSWORD = "";
+    static const char *WIFI_SSID = "Dianeric";
+    static const char *WIFI_PASSWORD = "FlowerEmma8";
 }
