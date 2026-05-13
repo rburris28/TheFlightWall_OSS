@@ -5,15 +5,13 @@
 namespace APIConfiguration
 {
     // OpenSky API credentials
-    static const char *OPENSKY_CLIENT_ID = "";
-    static const char *OPENSKY_CLIENT_SECRET = "";
-    static constexpr const char *OPENSKY_TOKEN_URL =
-        "https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token";
+    static const char *OPENSKY_CLIENT_ID = "rburris28-api-client";
+    static const char *OPENSKY_CLIENT_SECRET = "jFId305mQIvjGQZLiXGCDMfz2kqCmbGH";
+    static constexpr const char *OPENSKY_TOKEN_URL = "https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token";
 
     static constexpr const char *OPENSKY_BASE_URL = "https://opensky-network.org";
-
     // FlightAware AeroAPI credentials
-    static const char *AEROAPI_KEY = "";
+    static const char *AEROAPI_KEY = "SZ1VG0ojyyhtoB9GTS4ZcmA4fkzDeGZh";
     static constexpr const char *AEROAPI_BASE_URL = "https://aeroapi.flightaware.com/aeroapi";
 
     // FlightWall CDN lookup
